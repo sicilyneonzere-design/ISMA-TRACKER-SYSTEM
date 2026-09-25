@@ -2,7 +2,7 @@
 <html lang="en">
   <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-  import { getDatabase } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+  import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCUnzWLJkvb4F7K6md-EtpM_uJEqhWU6Fg",
@@ -166,10 +166,45 @@ const NAMES={timber:'Timber',cement:'Cement',stones:'Stones/PSC',sand:'Sand',bal
 const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DEF_ALLOW={Adult:{cement:.5,stones:28,sand:3,ballast:.5,wire:1},Child:{cement:.25,stones:14,sand:1.5,ballast:.25,wire:.5}};
 const DEF_TIMBER={Adult:15,Child:8};
-const load=(k,f)=>{try{const v=firebase.getItem(k);return v?JSON.parse(v):f}catch(e){return f}};
-const save=(k,v)=>{try{firebase.setItem(k,JSON.stringify(v))}catch(e){}};
+const load=(k,f)=>{
+  try{
+    const v=localStorage.getItem(k);
+    return v?JSON.parse(v):f;
+  }catch(e){
+    return f;
+  }
+};
+
+const save=(k,v)=>{
+  try{
+    localStorage.setItem(k,JSON.stringify(v));
+  }catch(e){}
+};
 URLX=BAKED_URL||load('isma_url','');KEYX=load('isma_key','');outbox=load('isma_outbox',[]);
-const cache=()=>{save('isma_records',records);save('isma_stock',stock);save('isma_allow',allow);save('isma_timber',timberAllow);save('isma_costs',costs)};
+const cache=async()=>{
+  try{
+    const data={
+      records,
+      stock,
+      allow,
+      timberAllow,
+      costs
+    };
+
+    await set(ref(window.db,'isma'),data);
+
+    save('isma_records',records);
+    save('isma_stock',stock);
+    save('isma_allow',allow);
+    save('isma_timber',timberAllow);
+    save('isma_costs',costs);
+
+    status('Saved to cloud','ok');
+  }catch(e){
+    console.error('Firebase save error:',e);
+    status('Cloud save failed','bad');
+  }
+};
 const pad=n=>String(n).padStart(2,'0');
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
 const mk=r=>(r.date||'').slice(0,7);
